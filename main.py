@@ -62,7 +62,7 @@ def get_all_tokens(df):
 
 def word_frequency(word):
     global tokens
-    return tokens.count(word.lower) / len(tokens)
+    return tokens.count(word.lower()) / len(tokens)
 
 
 def get_word_structure_features(word):
@@ -118,8 +118,8 @@ def kfold_cross_validation():
     fold_number = 10
 
     for nb in [7]:
-        model = KNeighborsClassifier(n_neighbors=nb)
-        # model = GaussianNB()
+        # model = KNeighborsClassifier(n_neighbors=nb)
+        model = GaussianNB()
         # model = svm.SVC()
 
         acc_scores = []
@@ -151,16 +151,20 @@ if __name__ == '__main__':
 
     tokens = get_all_tokens(train)
 
-    kfold_cross_validation()
+    # kfold_cross_validation()
 
-    # X_train = featurize_df(train)
-    # X_test = featurize_df(test)
-    #
-    # y_train = train.loc[:, 'complex']
-    #
+    X_train = featurize_df(train)
+    X_test = featurize_df(test)
+
+    print(X_train[0])
+
+    y_train = train.loc[:, 'complex']
+
     # model = KNeighborsClassifier(n_neighbors=5)
-    #
-    # model.fit(X_train, y_train)
-    # preds = model.predict(X_test)
-    #
-    # save_predictions(preds)
+
+    model = GaussianNB()
+
+    model.fit(X_train, y_train)
+    preds = model.predict(X_test)
+
+    save_predictions(preds)
