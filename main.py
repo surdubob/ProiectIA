@@ -19,9 +19,9 @@ train = pd.read_excel('train.xlsx', dtype=dtypes, keep_default_na=False)
 test = pd.read_excel('test.xlsx', dtype=dtypes, keep_default_na=False)
 
 
-def save_predictions(preds):
+def save_predictions(prds):
     test_id = np.arange(7663, 9001)
-    np.savetxt("first_try.csv", np.stack((test_id, preds)).T, fmt="%d", delimiter=',', header="id,complex", comments="")
+    np.savetxt("first_try.csv", np.stack((test_id, prds)).T, fmt="%d", delimiter=',', header="id,complex", comments="")
 
 
 def nr_syllables(word):
@@ -30,10 +30,7 @@ def nr_syllables(word):
 
 
 def is_dale_chall(word):
-    for w in DALE_CHALL:
-        if word.lower() == w.lower():
-            return True
-    return False
+    return int(word.lower() in DALE_CHALL)
 
 
 def length(word):
@@ -49,7 +46,23 @@ def nr_vowels(word):
 
 
 def is_title(word):
-    return word.istitle()
+    return int(word.istitle())
+
+
+def get_all_tokens(df):
+    all_words = []
+    global tokens
+    for _, row in df.iterrows():
+        tokens = word_tokenize(row['sentence'])
+        for t in tokens:
+            all_words.append(t.lower())
+
+    return all_words
+
+
+def word_frequency(word):
+    global tokens
+    return tokens.count(word.lower) / len(tokens)
 
 
 def get_word_structure_features(word):
@@ -59,11 +72,13 @@ def get_word_structure_features(word):
     features.append(length(word))
     features.append(nr_vowels(word))
     features.append(is_title(word))
+
+    features.append(word_frequency(word))
     return np.array(features)
 
 
 def synsets(word):
-    return None
+    return len(wordnet.synsets(word))
 
 
 def get_wordnet_features(word):
@@ -85,7 +100,7 @@ def featurize(row):
     all_features = []
     all_features.extend(corpus_feature(row['corpus']))
     all_features.extend(get_word_structure_features(word))
-    # all_features.extend(get_wordnet_features(word))
+    all_features.extend(get_wordnet_features(word))
     return np.array(all_features)
 
 
@@ -99,18 +114,19 @@ def featurize_df(df):
     return features
 
 
-def kfold_cross_validation(df):
+def kfold_cross_validation():
     fold_number = 10
 
-    for nb in [1]:
-        # model = KNeighborsClassifier(n_neighbors=nb)
+    for nb in [7]:
+        model = KNeighborsClassifier(n_neighbors=nb)
         # model = GaussianNB()
-        model = svm.SVC()
+        # model = svm.SVC()
 
         acc_scores = []
         kf = KFold(fold_number, shuffle=True)
         for train_index, test_index in kf.split(train):
             train_data_x = train.iloc[train_index]
+
             X_train = featurize_df(train_data_x)
             X_test = featurize_df(train.iloc[test_index])
 
@@ -133,14 +149,18 @@ if __name__ == '__main__':
     print('train data: ', train.shape)
     print('test data: ', test.shape)
 
-    X_train = featurize_df(train)
-    X_test = featurize_df(test)
+    tokens = get_all_tokens(train)
 
-    y_train = train.loc[:, 'complex']
+    kfold_cross_validation()
 
-    model = svm.SVC()
-
-    model.fit(X_train, y_train)
-    preds = model.predict(X_test)
-
-    save_predictions(preds)
+    # X_train = featurize_df(train)
+    # X_test = featurize_df(test)
+    #
+    # y_train = train.loc[:, 'complex']
+    #
+    # model = KNeighborsClassifier(n_neighbors=5)
+    #
+    # model.fit(X_train, y_train)
+    # preds = model.predict(X_test)
+    #
+    # save_predictions(preds)
