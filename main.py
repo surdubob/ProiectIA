@@ -10,6 +10,7 @@ from nltk.tokenize import word_tokenize
 import nltk
 from sklearn.naive_bayes import GaussianNB
 from sklearn import svm
+from wordfreq import word_frequency, zipf_frequency
 
 nltk.download('punkt')
 nltk.download('wordnet')
@@ -60,20 +61,20 @@ def get_all_tokens(df):
     return all_words
 
 
-def word_frequency(word):
+def word_frequency_in_dataset(word):
     global tokens
     return tokens.count(word.lower()) / len(tokens)
 
 
 def get_word_structure_features(word):
     features = []
-    features.append(nr_syllables(word))
+    # features.append(nr_syllables(word))
     features.append(is_dale_chall(word))
     features.append(length(word))
     features.append(nr_vowels(word))
-    features.append(is_title(word))
+    # features.append(is_title(word))
 
-    features.append(word_frequency(word))
+    # features.append(word_frequency_in_dataset(word))
     return np.array(features)
 
 
@@ -81,9 +82,27 @@ def synsets(word):
     return len(wordnet.synsets(word))
 
 
+def depth(word):
+    s = wordnet.synsets(word)
+    avg = 0
+    for i in s:
+        avg += i.max_depth()
+
+    if len(s) != 0:
+        avg = avg / len(s)
+        return avg
+    return 5
+
+
+def wordnet_frequency(word):
+    return zipf_frequency(word, 'en')
+
+
 def get_wordnet_features(word):
     features = []
     features.append(synsets(word))
+    # features.append(depth(word))
+    features.append(wordnet_frequency(word))
     return np.array(features)
 
 
@@ -125,9 +144,7 @@ def kfold_cross_validation():
         acc_scores = []
         kf = KFold(fold_number, shuffle=True)
         for train_index, test_index in kf.split(train):
-            train_data_x = train.iloc[train_index]
-
-            X_train = featurize_df(train_data_x)
+            X_train = featurize_df(train.iloc[train_index])
             X_test = featurize_df(train.iloc[test_index])
 
             y_train = train.iloc[train_index].loc[:, 'complex']
@@ -136,7 +153,7 @@ def kfold_cross_validation():
             model.fit(X_train, y_train)
             preds = model.predict(X_test)
 
-            acc = balanced_accuracy_score(preds, y_test)
+            acc = balanced_accuracy_score(y_test, preds)
             acc_scores.append(acc)
 
         avg_acc_score = sum(acc_scores) / fold_number
