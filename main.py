@@ -68,11 +68,11 @@ def word_frequency_in_dataset(word):
 
 def get_word_structure_features(word):
     features = []
-    # features.append(nr_syllables(word))
+    features.append(nr_syllables(word))
     features.append(is_dale_chall(word))
     features.append(length(word))
     features.append(nr_vowels(word))
-    # features.append(is_title(word))
+    features.append(is_title(word))
 
     # features.append(word_frequency_in_dataset(word))
     return np.array(features)
@@ -86,7 +86,7 @@ def depth(word):
     s = wordnet.synsets(word)
     avg = 0
     for i in s:
-        avg += i.max_depth()
+        avg += i.min_depth()
 
     if len(s) != 0:
         avg = avg / len(s)
@@ -98,11 +98,46 @@ def wordnet_frequency(word):
     return zipf_frequency(word, 'en')
 
 
+def hypernyms(word):
+    cnt = 0
+    syn = wordnet.synsets(word)
+    for s in syn:
+        cnt += len(s.hypernyms())
+
+    return cnt
+
+
+def meronyms(word):
+    cnt = 0
+    syn = wordnet.synsets(word)
+    for s in syn:
+        cnt += len(s.part_meronyms())
+
+    return cnt
+
+    # syn = wordnet.synsets(word)
+    # if len(syn) > 0:
+    #     return len(syn[0].part_meronyms())
+    # return 0
+
+
+def holonyms(word):
+    cnt = 0
+    syn = wordnet.synsets(word)
+    for s in syn:
+        cnt += len(s.substance_holonyms())
+
+    return cnt
+
+
 def get_wordnet_features(word):
     features = []
     features.append(synsets(word))
     # features.append(depth(word))
     features.append(wordnet_frequency(word))
+    features.append(holonyms(word))
+    # features.append(hypernyms(word))
+    # features.append(meronyms(word))
     return np.array(features)
 
 
